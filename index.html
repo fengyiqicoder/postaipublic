@@ -1,1 +1,844 @@
-PostAi
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostAi</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="icon" href="icon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: SimSun, "宋体", Georgia, "Times New Roman", serif;
+            background-color: #f5e8d3;
+            color: #3a3a3a;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: STFangsong, "华文仿宋", "Playfair Display", serif;
+            color: #8b4513;
+        }
+
+        #short-summary, #long-summary {
+            background-color: #faf0e6;
+            border: 2px solid #d2b48c;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 3px 3px 5px rgba(0,0,0,0.1);
+        }
+
+        #long-summary {
+            background-image: url('old-paper-texture.jpg');
+            background-color: #faf0e6; /* 备用背景色 */
+        }
+
+        /* 为按钮添加复古风格 */
+        button, input[type="submit"], input[type="button"] {
+            font-family: STFangsong, "华文仿宋", Georgia, serif;
+            background-color: #d2b48c;
+            color: #3a3a3a;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        /* 添加复古风格的分隔线 */
+        hr {
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(139, 69, 19, 0.75), rgba(0, 0, 0, 0));
+            margin: 20px 0;
+        }
+
+        /* 输入框添加复古风格 */
+        input[type="text"], textarea {
+            font-family: "Microsoft YaHei", "微软雅", SimSun, "宋体", sans-serif;
+            border: 1px solid #d2b48c;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: #faf0e6;
+        }
+
+        .input-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        #postai-title h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #8b4513;
+        }
+
+        #url-input-wrapper {
+            flex-grow: 1;
+            margin: 0 15px;
+        }
+
+        #urlInput {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+        }
+
+        #generate-button-wrapper {
+            flex-shrink: 0;
+            margin-left: 15px; /* 添加这一行 */
+        }
+
+        #doneButton {
+            padding: 8px 15px;
+            font-size: 16px;
+        }
+
+        #imageContent {
+            width: 375px; /* 模拟手机屏幕宽度 */
+            padding: 20px;
+            background-color: #ffffff;
+            font-family: "Microsoft YaHei", "微软雅黑", SimSun, "体", sans-serif;
+            display: none;
+        }
+        #imageContent h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #imageContent p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        /* 添加 Markdown 样式 */
+        #imageContent blockquote {
+            border-left: 4px solid #ccc;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+        }
+        #imageContent code {
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        #imageContent pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+
+        /* 添加以下样式来控制图片大小 */
+        #imageContent img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title {
+            margin-right: 10px;
+            margin-bottom: 12px;
+            margin-top: 12px;
+        }
+        
+        .regenerate-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+        }
+        
+        .regenerate-btn svg {
+            width: 100%;
+            height: 100%;
+            fill: #8b4513; /* 设置SVG填充颜色为深褐色 */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .regenerate-btn.spinning svg {
+            animation: spin 0.7s linear infinite;
+        }
+
+        #language-select-wrapper {
+            margin-left: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        #language-select-wrapper label {
+            font-family: STFangsong, "华文仿宋", Georgia, serif;
+            color: #8b4513; /* 与标题颜色相同的深褐色 */
+            margin-right: 5px;
+        }
+
+        #languageSelect {
+            font-family: STFangsong, "华文仿宋", Georgia, serif;
+            background-color: #faf0e6;
+            color: #3a3a3a;
+            border: 1px solid #d2b48c;
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #languageSelect option {
+            background-color: #faf0e6;
+            color: #3a3a3a;
+        }
+
+        #fullScreenEditor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        #markdownEditor {
+            flex-grow: 1;
+            width: 100%;
+            font-family: monospace;
+            font-size: 16px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        #completeEditBtn {
+            align-self: flex-end;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+
+        .margin-btn {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+    </style>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6X02H0GHY3"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-6X02H0GHY3');
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="input-container">
+            <div id="postai-title">
+                <h1>PostAi</h1>
+            </div>
+            <div id="url-input-wrapper">
+                <input type="text" id="urlInput" placeholder="输入URL，一键生成高质量社媒内容">
+            </div>
+            <div id="language-select-wrapper">
+                <label for="languageSelect">输出语言：</label>
+                <select id="languageSelect">
+                    <option value="en">🇺🇸 English</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="hi">🇮🇳 हिन्दी</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="ar">🇸🇦 العربية</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="ru">🇷🇺 Русский</option>
+                </select>
+            </div>
+            <div id="generate-button-wrapper">
+                <button id="doneButton">生成</button>
+            </div>
+        </div>
+        <div id="socialMediaPost" style="display: none;">
+            <div class="section-header">
+                <h3 class="section-title">短内容</h3>
+                <button class="regenerate-btn" onclick="regenerateShortSummary()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42.2754 56.8066">
+                        <path d="M0 30.0146C0 41.6162 9.4043 51.0352 21.0205 51.0352C32.6367 51.0352 42.041 41.6162 42.041 30.0146C42.041 28.0518 40.6934 26.7334 38.8184 26.7334C36.9873 26.7334 35.6982 28.0518 35.6982 30C35.6982 38.1006 29.1211 44.6631 21.0205 44.6631C12.9199 44.6631 6.34277 38.1006 6.34277 30C6.34277 21.8994 12.9199 15.3223 21.0205 15.3223C21.8115 15.3223 22.5293 15.3516 23.1738 15.4834L18.5889 19.9805C18.0469 20.5078 17.7246 21.167 17.7246 22.0166C17.7246 23.7451 19.0869 25.1074 20.7861 25.1074C21.665 25.1074 22.3682 24.7998 22.9248 24.2578L32.1973 14.8828C32.8418 14.2383 33.1641 13.4912 33.1641 12.5977C33.1641 11.7627 32.8125 10.9717 32.1973 10.3418L22.9248 0.908203C22.3682 0.307617 21.6504 0 20.7861 0C19.0869 0 17.7246 1.40625 17.7246 3.14941C17.7246 4.01367 18.0469 4.67285 18.5742 5.2002L22.6904 9.14062C22.1484 9.03809 21.5918 8.99414 21.0205 8.99414C9.4043 8.99414 0 18.3984 0 30.0146Z"/>
+                    </svg>
+                </button>
+            </div>
+            <p id="shortSummaryContent"></p>
+        </div>
+        <div id="condensedContent" style="display: none;">
+            <div class="section-header">
+                <h3 class="section-title">长内容</h3>
+                <button class="regenerate-btn" onclick="regenerateLongSummary()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42.2754 56.8066">
+                        <path d="M0 30.0146C0 41.6162 9.4043 51.0352 21.0205 51.0352C32.6367 51.0352 42.041 41.6162 42.041 30.0146C42.041 28.0518 40.6934 26.7334 38.8184 26.7334C36.9873 26.7334 35.6982 28.0518 35.6982 30C35.6982 38.1006 29.1211 44.6631 21.0205 44.6631C12.9199 44.6631 6.34277 38.1006 6.34277 30C6.34277 21.8994 12.9199 15.3223 21.0205 15.3223C21.8115 15.3223 22.5293 15.3516 23.1738 15.4834L18.5889 19.9805C18.0469 20.5078 17.7246 21.167 17.7246 22.0166C17.7246 23.7451 19.0869 25.1074 20.7861 25.1074C21.665 25.1074 22.3682 24.7998 22.9248 24.2578L32.1973 14.8828C32.8418 14.2383 33.1641 13.4912 33.1641 12.5977C33.1641 11.7627 32.8125 10.9717 32.1973 10.3418L22.9248 0.908203C22.3682 0.307617 21.6504 0 20.7861 0C19.0869 0 17.7246 1.40625 17.7246 3.14941C17.7246 4.01367 18.0469 4.67285 18.5742 5.2002L22.6904 9.14062C22.1484 9.03809 21.5918 8.99414 21.0205 8.99414C9.4043 8.99414 0 18.3984 0 30.0146Z"/>
+                    </svg>
+                </button>
+            </div>
+            <p id="condensedText"></p>
+        </div>
+
+        <div id = "fullconentDiv" style="display: none;">
+            <div class="section-header">
+                <h3 id="fullImageTitle">全文图片</h3>
+                <button id="editContentBtn" class="margin-btn">编辑</button>        
+                <button id="generateImageBtn" class="margin-btn">生成并下载图片</button>
+            </div>
+            
+            <div id="imageContent"></div>
+            
+    </div>
+
+    <div id="fullScreenEditor" style="display: none;">
+        <textarea id="markdownEditor"></textarea>
+        <button id="completeEditBtn">完成编辑</button>
+    </div>
+
+    <div id="contactInfo" style="display: none; text-align: center; margin-top: 20px; font-family: SimSun, '宋体', Georgia, 'Times New Roman', serif; font-size: 12px; color: #8b4513;">
+      <p>Contact: <a href="mailto:cloudstickerforapple@gmail.com" style="color: #8b4513; text-decoration: none;">cloudstickerforapple@gmail.com</a> | 
+      Follow me on Twitter: <a href="https://x.com/feng_yq" target="_blank" style="color: #8b4513; text-decoration: none;">@feng_yq</a></p>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const doneButton = document.getElementById('doneButton');
+        const result = document.getElementById('result');
+        const languageSelect = document.getElementById('languageSelect');
+        const editContentBtn = document.getElementById('editContentBtn');
+        const fullScreenEditor = document.getElementById('fullScreenEditor');
+        const markdownEditor = document.getElementById('markdownEditor');
+        const completeEditBtn = document.getElementById('completeEditBtn');
+
+        // 添加以下代码
+        urlInput.addEventListener('focus', function() {
+            this.select();
+        });
+
+        doneButton.addEventListener('click', handleGenerate);
+
+        // 添加这个新的事件监听器
+        urlInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // 阻止默认的回车行为
+                handleGenerate();
+            }
+        });
+
+        // 保留原有 getBrowserLanguage 函数
+        function getBrowserLanguage() {
+            const fullLang = navigator.language || navigator.userLanguage;
+            const shortLang = fullLang.split('-')[0];
+            const supportedLanguages = ['en', 'zh', 'hi', 'es', 'ar', 'fr', 'ru'];
+            return supportedLanguages.includes(shortLang) ? shortLang : 'en';
+        }
+
+        // 添加新函数来获取界面语言
+        function getInterfaceLanguage() {
+            return getBrowserLanguage() === 'zh' ? 'zh' : 'en';
+        }
+
+        // 添加这个新函数来设置界面语言
+        function setInterfaceLanguage(lang) {
+            const translations = {
+                'zh': {
+                    title: 'PostAi',
+                    urlPlaceholder: '输入URL，一键生成高质量社媒内容',
+                    languageLabel: '输出语言：',
+                    generateButton: '生成',
+                    shortContent: '短内容',
+                    longContent: '长内容',
+                    fullImageTitle: '全文图片',
+                    editButton: '编辑',
+                    generateImageButton: '生成并下载图片',
+                    completeEditButton: '完成编辑'
+                },
+                'en': {
+                    title: 'PostAi',
+                    urlPlaceholder: 'Enter URL to generate high-quality social media content',
+                    languageLabel: 'Output Language:',
+                    generateButton: 'Generate',
+                    shortContent: 'Short Content',
+                    longContent: 'Long Content',
+                    fullImageTitle: 'Full Image',
+                    editButton: 'Edit',
+                    generateImageButton: 'Generate and Download Image',
+                    completeEditButton: 'Complete Edit'
+                }
+            };
+
+            document.getElementById('postai-title').querySelector('h1').textContent = translations[lang].title;
+            document.getElementById('urlInput').placeholder = translations[lang].urlPlaceholder;
+            document.querySelector('label[for="languageSelect"]').textContent = translations[lang].languageLabel;
+            document.getElementById('doneButton').textContent = translations[lang].generateButton;
+            document.querySelector('.section-title:nth-of-type(1)').textContent = translations[lang].shortContent;
+            const longContentTitle = document.querySelector('#condensedContent .section-title'); longContentTitle ? (longContentTitle.textContent = translations[lang].longContent) : null;
+            document.getElementById('fullImageTitle').textContent = translations[lang].fullImageTitle;
+            document.getElementById('editContentBtn').textContent = translations[lang].editButton;
+            document.getElementById('generateImageBtn').textContent = translations[lang].generateImageButton;
+            document.getElementById('completeEditBtn').textContent = translations[lang].completeEditButton;
+        }
+
+        // 在文档加载完成后设置面语言和下拉框语言
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const browserLang = getBrowserLanguage();
+            languageSelect.value = browserLang;
+
+            const interfaceLang = getInterfaceLanguage();
+            setInterfaceLanguage(interfaceLang);
+
+        });
+
+        // 修改 handleGenerate 函数，只使用选择的语言
+        function handleGenerate() {
+            const url = urlInput.value;
+            const selectedLanguage = languageSelect.value;
+            if (url) {                
+                // 立即显示三个标题
+                document.getElementById('socialMediaPost').style.display = 'block';
+                document.getElementById('condensedContent').style.display = 'block';
+                document.getElementById('fullconentDiv').style.display = 'block';
+                
+                // 显示联系信息
+                document.getElementById('contactInfo').style.display = 'block';
+                
+                // 开始旋转所有 regenerate 按钮
+                document.querySelectorAll('.regenerate-btn').forEach(btn => {
+                    btn.classList.add('spinning');
+                });
+                
+                fetchContent(url, selectedLanguage);
+            }
+        }
+
+        let originalContent = '';
+
+        async function fetchContent(url, language) {
+            fetch('https://r.jina.ai/' + url, {
+                method: 'GET',
+                headers: {
+                    "Authorization": "Bearer jina_ed8cb2a7b3104d65a26f59ce584e9718tIWSRoj75tg9KA2MD0EfmaK5BXOC",
+                    "Accept": "application/json"
+                },
+            })
+            .then(response => response.json())
+            .then(response => {
+                if (response.code === 200 && response.status === 20000) {
+                    const data = response.data;
+                    originalContent = data.content;
+                    // 清理Markdown内容
+                    const cleanedContent = cleanMarkdown(data.content);
+                    //生成对应内容
+                    generateSocialMediaPost(cleanedContent, language);
+                    generateCondensedContent(cleanedContent, language);
+
+                    // 检测内容语言
+                    // const maxDetectionLength = 400; // 设置最大检测长度
+                    // const detectionText = cleanedContent.slice(0, maxDetectionLength); // 只使用前1000个字
+                    // const detectedLanguage = detectLanguage(detectionText);
+                    // const selectedLanguage = language;
+                    
+                    // // 如果需要，可以添加日志输出
+                    // console.log('检测到的语言:', detectedLanguage);
+                    // console.log('选择的语言:', selectedLanguage);
+                    
+                    // if (detectedLanguage !== selectedLanguage) {
+                    //     console.log('检测到的语言与选择的语言不匹配');
+                    //     // 将data.title, data.description, cleanedContent 转换为selectedLanguage
+                    //     translateContent(data.title, data.description, cleanedContent, selectedLanguage)
+                    //         .then(([translatedTitle, translatedDescription, translatedContent]) => {
+                    //             prepareImageContent(translatedTitle, translatedDescription, translatedContent);
+                    //         })
+                    //         .catch(error => {
+                    //             console.error('翻译内容时出错:', error);
+                    //             prepareImageContent(data.title, data.description, cleanedContent);
+                    //         });
+                    // } else {
+                    //     prepareImageContent(data.title, data.description, cleanedContent);
+                    // }
+
+                    prepareImageContent(data.title, data.description, cleanedContent);
+
+
+                } else {
+                    result.textContent = `错误：无法获取内容`;
+                    // 停止旋转所有 regenerate 按钮
+                    document.querySelectorAll('.regenerate-btn').forEach(btn => {
+                        btn.classList.remove('spinning');
+                    });
+                }
+            })
+            .catch(error => {
+                result.textContent = `错误：${error.message}`;
+                // 停止旋转所有 regenerate 按钮
+                document.querySelectorAll('.regenerate-btn').forEach(btn => {
+                    btn.classList.remove('spinning');
+                });
+            });
+        }
+
+        function cleanMarkdown(markdown) {
+            // 删除所有图片
+            markdown = markdown.replace(/!\[.*?\]\(.*?\)/g, '');
+            
+            // 删除超链接的URL，保留链接文本
+            markdown = markdown.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '$1');
+            
+            return markdown;
+        }
+
+        async function generateCondensedContent(content, language) {
+            const apiKey = 'sk-jL2pBhlFl2mWEvhwF01bDfE0AdB24d64Bd60F1004dCf8bEb'; // 已更新的API密钥
+            const prompt = `Reply in ${getLanguageName(language)}. This is the content of this article, and now I need to create condensed content for it.
+            Please help me generate condensed content, following these rules:
+            1. Use natural written expression
+            2. Do not use question marks or exclamation points
+            3. Do not use the term "this article"
+            4. Use 4-5 sentences in a clear logical order that covers all aspects of the original content. This rule is the most important, it must be followed.
+
+            ${content}`;
+
+            const condensedContentElement = document.getElementById('condensedContent');
+            condensedContentElement.style.display = 'block';
+            const condensedTextElement = document.getElementById('condensedText');
+            condensedTextElement.textContent = '';
+
+            try {
+                const response = await fetch('https://aihubmix.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-2024-08-06",
+                        messages: [{"role": "user", "content": prompt}],
+                        max_tokens: 500,
+                        stream: true
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    for (let i = 0; i < lines.length - 1; i++) {
+                        const line = lines[i].trim();
+                        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                            const data = JSON.parse(line.slice(6));
+                            const text = data.choices[0].delta.content;
+                            if (text) {
+                                condensedTextElement.textContent += text;
+                            }
+                        }
+                    }
+                    
+                    buffer = lines[lines.length - 1];
+                }
+            } catch (error) {
+                console.error('调用OpenAI API时错：', error);
+                condensedContentElement.textContent = '生成浓缩内时出错。';
+            } finally {
+                // 停止旋转第二个 regenerate 按钮
+                document.querySelectorAll('.regenerate-btn')[1].classList.remove('spinning');
+            }
+        }
+
+        async function generateSocialMediaPost(content, language) {
+            const apiKey = 'sk-jL2pBhlFl2mWEvhwF01bDfE0AdB24d64Bd60F1004dCf8bEb'; // 已更新的API密钥
+            const prompt = `Reply in ${getLanguageName(language)}. Write a one-sentence summary of this article, highlighting its strengths and key points in no more than 7 concepts. The sentence should be concise and clear.
+
+            Do not use the term "this article."
+
+            here is the article:
+
+            ${content}`;
+
+            try {
+                const response = await fetch('https://aihubmix.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-2024-08-06",
+                        messages: [{"role": "user", "content": prompt}],
+                        max_tokens: 150,
+                        stream: true
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let socialMediaPost = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    
+                    for (let i = 0; i < lines.length - 1; i++) {
+                        const line = lines[i].trim();
+                        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                            const data = JSON.parse(line.slice(6));
+                            const text = data.choices[0].delta.content;
+                            if (text) {
+                                socialMediaPost += text;
+                                document.getElementById('shortSummaryContent').innerHTML = socialMediaPost;
+                            }
+                        }
+                    }
+                    
+                    buffer = lines[lines.length - 1];
+                }
+            } catch (error) {
+                console.error('调用OpenAI API时出错：', error);
+                document.getElementById('shortSummaryContent').textContent = '生成社交媒体帖子时出错';
+            } finally {
+                // 停止旋转第一个 regenerate 按钮
+                document.querySelector('.regenerate-btn').classList.remove('spinning');
+            }
+        }
+
+        async function prepareImageContent(title, description, content) {
+            const imageContentDiv = document.getElementById('imageContent');
+            const parsedContent = marked.parse(content); // 解析 Markdown 内容
+            
+            // 创建一个临时的div元素来存放解析后的内容
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = parsedContent;
+            
+            // 删除所有的img元素
+            const images = tempDiv.getElementsByTagName('img');
+            while(images.length > 0) {
+                images[0].parentNode.removeChild(images[0]);
+            }
+            
+            // 获取清理后的HTML内容
+            const cleanedContent = tempDiv.innerHTML;
+            
+            // 存储原始的Markdown内容
+            imageContentDiv.setAttribute('data-markdown', `# ${title}\n\n**${description}**\n\n${content}`);
+            
+            imageContentDiv.innerHTML = `
+                <h1>${title}</h1>
+                <p><strong>${description}</strong></p>
+                ${cleanedContent}
+            `;
+            imageContentDiv.style.display = 'block';
+            
+            const generateImageBtn = document.getElementById('generateImageBtn');
+            generateImageBtn.style.display = 'block';
+            generateImageBtn.onclick = generateImage;
+            
+            editContentBtn.style.display = 'block';
+        }
+
+        async function generateImage() {
+            const imageContentDiv = document.getElementById('imageContent');
+            
+            try {
+                // 使用 html2canvas 生成图片
+                const canvas = await html2canvas(imageContentDiv, {
+                    useCORS: true,
+                    scale: 2
+                });
+
+                // 将canvas转换为Blob
+                canvas.toBlob(function(blob) {
+                    // 创建一个临时的URL
+                    const url = URL.createObjectURL(blob);
+                    
+                    // 创一个临时的a标签用于下载
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = '文章内容.png';
+                    
+                    // 模拟点击下载
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // 清理URL对象
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+            } catch (error) {
+                console.error('生成图片出错：', error);
+                alert('生成图片时出错，请稍后重试。');
+            }
+        }
+
+        async function regenerateShortSummary() {
+            if (originalContent) {
+                // 开始旋转按钮
+                document.querySelector('.regenerate-btn').classList.add('spinning');
+                await generateSocialMediaPost(originalContent, languageSelect.value);
+                // 生成完成后停止旋转
+                document.querySelector('.regenerate-btn').classList.remove('spinning');
+            }
+        }
+
+        async function regenerateLongSummary() {
+            if (originalContent) {
+                // 开始旋转按钮
+                document.querySelectorAll('.regenerate-btn')[1].classList.add('spinning');
+                await generateCondensedContent(originalContent, languageSelect.value);
+                // 生成完成后停止旋转
+                document.querySelectorAll('.regenerate-btn')[1].classList.remove('spinning');
+            }
+        }
+
+        // 添加一个新函数来获取语言名称
+        function getLanguageName(languageCode) {
+            const languageMap = {
+                'en': 'English',
+                'zh': 'Chinese',
+                'hi': 'Hindi',
+                'es': 'Spanish',
+                'ar': 'Arabic',
+                'fr': 'French',
+                'ru': 'Russian'
+            };
+            return languageMap[languageCode] || 'English';
+        }
+
+        // 添加以下新代码
+        document.getElementById('postai-title').addEventListener('click', function() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('urlInput').focus();
+        });
+
+        editContentBtn.addEventListener('click', () => {
+            const imageContentDiv = document.getElementById('imageContent');
+            const markdownContent = imageContentDiv.getAttribute('data-markdown');
+            markdownEditor.value = markdownContent || '';
+            fullScreenEditor.style.display = 'flex';
+        });
+        
+        completeEditBtn.addEventListener('click', () => {
+            const imageContentDiv = document.getElementById('imageContent');
+            const editedMarkdown = markdownEditor.value;
+            imageContentDiv.setAttribute('data-markdown', editedMarkdown);
+            imageContentDiv.innerHTML = marked.parse(editedMarkdown);
+            fullScreenEditor.style.display = 'none';
+        });
+
+        function detectLanguage(text) {
+            const langPatterns = {
+                en: /^[a-z0-9\s.,!?'"-]+$/i,
+                zh: /[\u4e00-\u9fa5]/,
+                hi: /[\u0900-\u097F]/,
+                es: /[áéíóúüñ]/i,
+                ar: /[\u0600-\u06FF]/,
+                fr: /[àâçéèêëîïôûùüÿœæ]/i,
+                ru: /[а-яА-ЯЁё]/
+            };
+
+            for (let lang in langPatterns) {
+                if (langPatterns[lang].test(text)) {
+                    return lang;
+                }
+            }
+            return 'en'; // 默认返回英语
+        }
+
+        async function translateContent(title, description, content, targetLanguage) {
+            const apiKey = 'sk-jL2pBhlFl2mWEvhwF01bDfE0AdB24d64Bd60F1004dCf8bEb'; // 已更新的API密钥
+            const prompt = `Translate the following text to ${getLanguageName(targetLanguage)}:
+
+Title: ${title}
+
+Description: ${description}
+
+Content:
+${content}
+
+Please provide the translation in the following format:
+Title: [Translated Title]
+
+Description: [Translated Description]
+
+Content:
+[Translated Content]`;
+
+            try {
+                const response = await fetch('https://aihubmix.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-2024-08-06",
+                        messages: [{"role": "user", "content": prompt}],
+                        max_tokens: 2000
+                    })
+                });
+
+                const data = await response.json();
+                const translatedText = data.choices[0].message.content;
+
+                // 解析翻译后的文本
+                const titleMatch = translatedText.match(/Title: (.*)/);
+                const descriptionMatch = translatedText.match(/Description: (.*)/);
+                const contentMatch = translatedText.match(/Content:\n([\s\S]*)/);
+
+                const translatedTitle = titleMatch ? titleMatch[1] : title;
+                const translatedDescription = descriptionMatch ? descriptionMatch[1] : description;
+                const translatedContent = contentMatch ? contentMatch[1].trim() : content;
+
+                return [translatedTitle, translatedDescription, translatedContent];
+            } catch (error) {
+                console.error('翻译内容时出错:', error);
+                throw error;
+            }
+        }
+    </script>
+</body>
+</html>
