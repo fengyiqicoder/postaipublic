@@ -683,9 +683,22 @@
         async function generateImage() {
             const imageContentDiv = document.getElementById('imageContent');
             
+            // 创建一个新的div用于图片生成
+            const imageDiv = document.createElement('div');
+            imageDiv.innerHTML = imageContentDiv.innerHTML;
+            imageDiv.style.width = '375px';
+            imageDiv.style.padding = '20px';
+            imageDiv.style.backgroundColor = '#ffffff';
+            imageDiv.style.fontFamily = '"Microsoft YaHei", "微软雅黑", SimSun, "宋体", sans-serif';
+            
+            // 将新创建的div添加到body中，但设置为不可见
+            document.body.appendChild(imageDiv);
+            imageDiv.style.position = 'absolute';
+            imageDiv.style.left = '-9999px';
+            
             try {
-                // 使用 html2canvas 生成图片
-                const canvas = await html2canvas(imageContentDiv, {
+                // 使用html2canvas生成图片
+                const canvas = await html2canvas(imageDiv, {
                     useCORS: true,
                     scale: 2
                 });
@@ -706,6 +719,9 @@
             } catch (error) {
                 console.error('生成图片出错：', error);
                 alert('生成图片时出错，请稍后重试。');
+            } finally {
+                // 移除临时创建的div
+                document.body.removeChild(imageDiv);
             }
         }
 
