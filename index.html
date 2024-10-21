@@ -690,24 +690,19 @@
                     scale: 2
                 });
 
-                // 将canvas转换为Blob
-                canvas.toBlob(function(blob) {
-                    // 创建一个临时的URL
-                    const url = URL.createObjectURL(blob);
-                    
-                    // 创一个临时的a标签用于下载
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = '文章内容.png';
-                    
-                    // 模拟点击下载
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    // 清理URL对象
-                    URL.revokeObjectURL(url);
-                }, 'image/png');
+                // 直接将canvas转换为Data URL
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                // 创建一个临时的a标签用于下载
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = 'PostAI.png';
+                
+                // 模拟点击下载
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
             } catch (error) {
                 console.error('生成图片出错：', error);
                 alert('生成图片时出错，请稍后重试。');
